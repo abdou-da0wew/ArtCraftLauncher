@@ -1,0 +1,61 @@
+[package]
+name = "artcraft-launcher"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.82"
+description = "ArtCraft Launcher — lightweight Rust launcher, updater and manager for the seven ArtCraft apps"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/abdou-da0wew/ArtCraftLauncher"
+
+[lib]
+name = "artcraft_launcher"
+path = "src/lib.rs"
+
+[[bin]]
+name = "artcraft-launcher"
+path = "src/main.rs"
+
+[[bin]]
+name = "artcraft-genicons"
+path = "src/bin/genicons.rs"
+
+[[bin]]
+name = "artcraft-shadercheck"
+path = "src/bin/shadercheck.rs"
+
+[dependencies]
+reqwest = { version = "0.12", features = ["json", "rustls-tls", "blocking"] }
+tokio = { version = "1", features = ["rt", "macros"] }
+wgpu = "24"
+winit = "0.30"
+pollster = "0.4"
+bytemuck = { version = "1", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+ureq = { version = "2", features = ["gzip", "json"] }
+flate2 = "1"
+tar = "0.4"
+zip = { version = "2", default-features = false, features = ["deflate"] }
+sha2 = "0.10"
+hex = "0.4"
+swash = "0.2"
+tiny-skia = "0.11"
+log = "0.4"
+libc = "0.2"
+png = "0.17"
+raw-window-handle = "0.6"
+naga = "24.0.0"
+
+[build-dependencies]
+winres = "0.1"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.dev]
+opt-level = 1
+debug = false
