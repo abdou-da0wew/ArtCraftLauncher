@@ -1,0 +1,11 @@
+/target
+*.log
+*.tmp
+*.swp
+*.swo
+.DS_Store
+.vscode
+.idea
+*.orig
+*.bak
+*.cache
