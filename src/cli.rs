@@ -903,6 +903,8 @@ fn cmd_import(args: &[String]) -> i32 {
 
 fn cmd_self_update(args: &[String]) -> i32 {
     use crate::github::check_launcher_updates;
+    use std::process::Command;
+    let force = args.contains(&"--yes".to_string()) || args.contains(&"-y".to_string());
     match check_launcher_updates() {
         Ok(Some((current, latest, update_type, notes))) => {
             println!("Update available!");
@@ -913,24 +915,161 @@ fn cmd_self_update(args: &[String]) -> i32 {
                 println!("  Notes:   {}", notes.lines().next().unwrap_or(""));
             }
             let auto = update_type.auto_apply(&settings().telemetry);
-            if auto {
-                println!("  -> Auto-applying (type: {})...", update_type.label());
-                // TODO: Actually download and apply
-                println!("  [Auto-apply not yet implemented]");
+            if auto || force {
+                println!("  -> Downloading and applying (type: {})...", update_type.label());
+                if let Err(e) = download_and_apply_launcher_update(&latest) {
+                    eprintln!("Update failed: {}", e);
+                    return 1;
+                }
+                println!("Update applied successfully! Restart the launcher to use v{}.", latest);
             } else {
                 println!("  -> Requires approval. Run with --yes to apply, or ignore.");
             }
-            0
+            return 0;
         }
         Ok(None) => {
             println!("Already up to date (v{}).", env!("CARGO_PKG_VERSION"));
-            0
+            return 0;
         }
         Err(e) => {
             eprintln!("Update check failed: {}", e);
-            1
+            return 1;
         }
     }
+
+/// Downloads and replaces the launcher binary with the latest version.
+fn download_and_apply_launcher_update(version: &str) -> Result<(), String> {
+    use std::fs;
+    use std::io::Write;
+
+    // Determine the current executable path
+    let current_exe = std::env::current_exe()
+        .map_err(|e| format!("Failed to get current executable path: {}", e))?;
+
+    // Determine asset name based on platform
+    let asset_name = format!(
+        "artcraft-launcher-{}-{}.tar.gz",
+        version,
+        match std::env::consts::OS {
+            "linux" => match std::env::consts::ARCH {
+                "x86_64" => "x86_64-unknown-linux-gnu",
+                "aarch64" => "aarch64-unknown-linux-gnu",
+                _ => return Err("Unsupported Linux architecture".into()),
+            },
+            "windows" => match std::env::consts::ARCH {
+                "x86_64" => "x86_64-pc-windows-msvc",
+                _ => return Err("Unsupported Windows architecture".into()),
+            },
+            "macos" => match std::env::consts::ARCH {
+                "x86_64" => "x86_64-apple-darwin",
+                "aarch64" => "aarch64-apple-darwin",
+                _ => return Err("Unsupported macOS architecture".into()),
+            },
+            _ => return Err("Unsupported OS".into()),
+        }
+    );
+
+    let url = format!(
+        "https://github.com/abdou-da0wew/ArtCraftLauncher/releases/download/v{}/{}",
+        version, asset_name
+    );
+
+    println!("  Downloading {}...", asset_name);
+
+    // Download the release archive
+    let response = ureq::get(&url)
+        .set("User-Agent", "artcraft-launcher")
+        .call()
+        .map_err(|e| format!("Download failed: {}", e))?;
+
+    if !(200..300).contains(&response.status()) {
+        return Err(format!("Download failed with status: {}", response.status()));
+    }
+
+    let archive_data = response.into_string()
+        .map_err(|e| format!("Failed to read response: {}", e))?
+        .into_bytes();
+
+    // Verify SHA256 if checksums are available
+    let checksums_url = format!(
+        "https://github.com/abdou-da0wew/ArtCraftLauncher/releases/download/v{}/SHA256SUMS.txt",
+        version
+    );
+    if let Ok(cs_resp) = ureq::get(&checksums_url).call() {
+        if (200..300).contains(&cs_resp.status()) {
+            let cs_text = cs_resp.into_string()
+                .map_err(|e| format!("Failed to read checksums: {}", e))?;
+            let expected = cs_text.lines()
+                .find(|l| l.contains(&asset_name))
+                .and_then(|l| l.split_whitespace().next())
+                .map(|s| s.to_lowercase());
+            if let Some(expected_hash) = expected {
+                use sha2::{Digest, Sha256};
+                let mut hasher = Sha256::new();
+                hasher.update(&archive_data);
+                let actual = format!("{:x}", hasher.finalize());
+                if actual != expected_hash {
+                    return Err(format!(
+                        "Checksum mismatch: expected {}, got {}",
+                        expected_hash, actual
+                    ));
+                }
+                println!("  Checksum verified");
+            }
+        }
+    }
+
+    // Extract the binary from the archive
+    let mut archive = tar::Archive::new(std::io::Cursor::new(&archive_data));
+    let entries = archive.entries()
+        .map_err(|e| format!("Failed to read archive: {}", e))?;
+
+    let mut binary_data = None;
+    for entry in entries {
+        let mut entry = entry.map_err(|e| format!("Archive entry error: {}", e))?;
+        let path = entry.path().map_err(|e| format!("Archive path error: {}", e))?;
+        if path.file_name().map(|n| n == "artcraft-launcher").unwrap_or(false) {
+            let mut buf = Vec::new();
+            use std::io::Read;
+            entry.read(&mut buf)
+                .map_err(|e| format!("Failed to read binary from archive: {}", e))?;
+            binary_data = Some(buf);
+            break;
+        }
+    }
+
+    let binary_data = binary_data
+        .ok_or_else(|| "Binary not found in archive".to_string())?;
+
+    // Write to a temporary file next to the current executable
+    let temp_path = current_exe.with_extension("new");
+    {
+        let mut file = fs::File::create(&temp_path)
+            .map_err(|e| format!("Failed to create temp file: {}", e))?;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mut perms = fs::metadata(&current_exe)
+                .map_err(|e| format!("Failed to get current perms: {}", e))?
+                .permissions();
+            fs::set_permissions(&temp_path, perms)
+                .map_err(|e| format!("Failed to set perms: {}", e))?;
+        }
+        file.write_all(&binary_data)
+            .map_err(|e| format!("Failed to write new binary: {}", e))?;
+    }
+
+    // Atomic replace: rename old to .old, new to current
+    let old_path = current_exe.with_extension("old");
+    fs::rename(&current_exe, &old_path)
+        .map_err(|e| format!("Failed to rename old binary: {}", e))?;
+    fs::rename(&temp_path, &current_exe)
+        .map_err(|e| format!("Failed to rename new binary: {}", e))?;
+
+    // Clean up old binary
+    let _ = fs::remove_file(&old_path);
+
+    Ok(())
 }
 
 fn cmd_telemetry(args: &[String]) -> i32 {
@@ -1062,4 +1201,5 @@ fn report_and_print(r: &Report) {
         println!("  cause: {} ({:.0}%) — {}", c.kind, c.confidence * 100.0, c.detail);
     }
     println!("  report spooled: {}", r.id);
+}
 }

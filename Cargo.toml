@@ -1,6 +1,6 @@
 [package]
 name = "artcraft-launcher"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 rust-version = "1.82"
 description = "ArtCraft Launcher — lightweight Rust launcher, updater and manager for the seven ArtCraft apps"

@@ -136,10 +136,10 @@ pub struct Tokens {
 
 impl Tokens {
     pub const LIGHT: Tokens = Tokens {
-        bg: Rgba::hex(0xf2f1ee),
+        bg: Rgba::rgb(0.95, 0.95, 0.93),
         bg_raised: Rgba::hex(0xfaf9f7),
         bg_sunken: Rgba::hex(0xe9e8e4),
-        ink: Rgba::hex(0x101014),
+        ink: Rgba::rgb(0.95, 0.95, 0.93),
         ink_strong: Rgba::hex(0x000000),
         muted: Rgba::hexa(0x101014_9e),
         faint: Rgba::hexa(0x101014_6b),
@@ -148,16 +148,16 @@ impl Tokens {
         accent: Rgba::hex(0x2d81ff),
         accent_ink: Rgba::hex(0x1659c4),
         invert_bg: Rgba::hex(0x101014),
-        invert_fg: Rgba::hex(0xf2f1ee),
+        invert_fg: Rgba::rgb(0.95, 0.95, 0.93),
         danger: Rgba::hex(0xb3261e),
         scanline: Rgba::hexa(0x101014_08),
     };
 
     pub const DARK: Tokens = Tokens {
-        bg: Rgba::hex(0x121316),
+        bg: Rgba::rgb(0.01, 0.01, 0.01),
         bg_raised: Rgba::hex(0x101014),
         bg_sunken: Rgba::hex(0x060607),
-        ink: Rgba::hex(0xf2f1ee),
+        ink: Rgba::rgb(0.95, 0.95, 0.93),
         ink_strong: Rgba::hex(0xffffff),
         muted: Rgba::hexa(0xf2f1ee_99),
         faint: Rgba::hexa(0xf2f1ee_61),

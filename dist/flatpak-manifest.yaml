@@ -1,0 +1,67 @@
+app-id: io.github.abdou_da0wew.ArtCraftLauncher
+runtime: org.freedesktop.Platform
+runtime-version: '23.08'
+sdk: org.freedesktop.Sdk
+command: artcraft-launcher
+finish-args:
+  - --share=network
+  - --share=ipc
+  - --socket=wayland
+  - --socket=x11
+  - --device=dri
+  - --filesystem=home
+  - --filesystem=xdg-run/pipewire-0
+  - --talk-name=org.freedesktop.secrets
+  - --talk-name=org.gtk.vfs.Metadata
+  - --env=ARTCRAFT_LAUNCHER_HOME=/home/$USER/.local/share/artcraft-launcher
+
+modules:
+  - name: artcraft-launcher
+    buildsystem: simple
+    build-commands:
+      - install -Dm755 artcraft-launcher /app/bin/artcraft-launcher
+      - install -Dm644 artcraft-launcher.desktop /app/share/applications/io.github.abdou_da0wew.ArtCraftLauncher.desktop
+      - install -Dm644 artcraft-icon.svg /app/share/icons/hicolor/scalable/apps/io.github.abdou_da0wew.ArtCraftLauncher.svg
+      - for size in 16 24 32 48 64 128 256; do
+          install -Dm644 artcraft-icon-${size}.png /app/share/icons/hicolor/${size}x${size}/apps/io.github.abdou_da0wew.ArtCraftLauncher.png;
+        done
+    sources:
+      - type: file
+        path: target/release/artcraft-launcher
+        dest-filename: artcraft-launcher
+      - type: file
+        path: assets/artcraft-launcher.desktop
+        dest-filename: artcraft-launcher.desktop
+      - type: file
+        path: assets/artcraft-icon.svg
+        dest-filename: artcraft-icon.svg
+      - type: file
+        path: assets/artcraft-icon-16.png
+        dest-filename: artcraft-icon-16.png
+      - type: file
+        path: assets/artcraft-icon-24.png
+        dest-filename: artcraft-icon-24.png
+      - type: file
+        path: assets/artcraft-icon-32.png
+        dest-filename: artcraft-icon-32.png
+      - type: file
+        path: assets/artcraft-icon-48.png
+        dest-filename: artcraft-icon-48.png
+      - type: file
+        path: assets/artcraft-icon-64.png
+        dest-filename: artcraft-icon-64.png
+      - type: file
+        path: assets/artcraft-icon-128.png
+        dest-filename: artcraft-icon-128.png
+      - type: file
+        path: assets/artcraft-icon-256.png
+        dest-filename: artcraft-icon-256.png
+
+  - name: artcraft-launcher.desktop
+    buildsystem: simple
+    build-commands:
+      - install -Dm644 artcraft-launcher.desktop /app/share/applications/io.github.abdou_da0wew.ArtCraftLauncher.desktop
+    sources:
+      - type: file
+        path: assets/artcraft-launcher.desktop
+        dest-filename: artcraft-launcher.desktop

@@ -3,7 +3,6 @@
 
 pub mod anim;
 pub mod apps;
-pub mod cli;
 pub mod config;
 pub mod gfx;
 pub mod github;

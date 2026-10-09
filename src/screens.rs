@@ -359,8 +359,9 @@ fn draw_library(
         y += 34.0;
     }
 
-    // ---- the capability ticker ------------------------------------------
-    y = draw_ticker(p, e, y, left, right);
+    // --- capability strip (static, not moving) ---
+    p.tx.draw_text(p.cv, "Seedance 2.5  ·  Nano Banana 2  ·  3D Mesh  ·  Background Removal  ·  Character Posing  ·  Mixed Assets", Role::MonoMedium, 10.0, 0.0, left + 24.0, y, t.muted, 1.0);
+    y += 22.0;
 
     // ---- sticky section eyebrow -----------------------------------------
     p.section_eyebrow(y, "01", "Crafting apps", Some("Seven apps · Open source · Pure Rust"));
@@ -489,7 +490,7 @@ fn draw_app(
     let dark = p.dark;
     let inner = right - left;
     let pad = 24.0;
-    let mut y = body_y + 28.0;
+    let mut y = body_y + 28.0 - (e.scroll * 0.3).min(20.0) as f32;
 
     let mut rule = crate::anim::RuleDraw::default();
     let mut ticks = [crate::anim::TickDraw::default(); 2];
@@ -792,9 +793,10 @@ fn draw_app(
 
     );
     ry += 8.0;
+    let fully_installed = r.active.is_some() && r.installed.contains(&r.active.as_ref().unwrap().clone());
     let (rect, _) = p.button(
         "integrate",
-        if r.integrated { "Re-register" } else { "Register" },
+        if !fully_installed { "Install first" } else if r.integrated { "Re-register" } else { "Register" },
         BtnKind::Action,
         BtnSize::Md,
         rx,
@@ -803,7 +805,7 @@ fn draw_app(
         None,
         false,
     );
-    if input.click.map(|c| rect.contains(c.0, c.1)).unwrap_or(false) {
+    if fully_installed && input.click.map(|c| rect.contains(c.0, c.1)).unwrap_or(false) {
         return (rule, ticks, Action::Integrate(a.slug.to_string()));
     }
     ry += rect.h + 10.0;
@@ -1270,7 +1272,7 @@ fn draw_updates(
     let (left, right) = p.rail();
     let inner = right - left;
     let pad = 24.0;
-    let mut y = body_y + 28.0;
+    let mut y = body_y + 28.0 - (e.scroll * 0.3).min(20.0) as f32;
 
     let mut rule = crate::anim::RuleDraw::default();
     let mut ticks = [crate::anim::TickDraw::default(); 2];
@@ -1459,7 +1461,7 @@ fn draw_settings(
     let inner = right - left;
     let pad = 24.0;
     let colw = (inner - pad * 2.0) * 0.5;
-    let mut y = body_y + 28.0;
+    let mut y = body_y + 28.0 - (e.scroll * 0.3).min(20.0) as f32;
 
     let mut rule = crate::anim::RuleDraw::default();
     let mut ticks = [crate::anim::TickDraw::default(); 2];
@@ -1743,7 +1745,7 @@ fn draw_reports(
     let (left, right) = p.rail();
     let inner = right - left;
     let pad = 24.0;
-    let mut y = body_y + 28.0;
+    let mut y = body_y + 28.0 - (e.scroll * 0.3).min(20.0) as f32;
 
     let mut rule = crate::anim::RuleDraw::default();
     let mut ticks = [crate::anim::TickDraw::default(); 2];
